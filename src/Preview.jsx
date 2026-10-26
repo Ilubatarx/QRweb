@@ -23,7 +23,7 @@ const Preview=forwardRef(function Preview({config,matrix},ref){
     const fill=new THREE.DirectionalLight(0xffffff,1);fill.position.set(150,40,-80);scene.add(fill);
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.ShadowMaterial({opacity:.12}));floor.rotation.x=-Math.PI/2;floor.position.y=-55;floor.receiveShadow=true;scene.add(floor);
     const root=new THREE.Group();scene.add(root);
-    const resize=()=>{const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
+    const resize=()=>{const w=el.clientWidth,h=el.clientHeight;if(w<1||h<1)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
     const observer=new ResizeObserver(resize);observer.observe(el);resize();
     let frame;const render=()=>{frame=requestAnimationFrame(render);controls.update();renderer.render(scene,camera);};render();
     sceneRef.current={root,floor,camera,controls,reset(){camera.position.set(125,75,235);controls.target.set(0,0,0);controls.update();}};

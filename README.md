@@ -28,6 +28,7 @@ La compilación genera `dist/` y prerenderiza la portada, la herramienta, el con
 - Soporte de mesa con pie conectado, llavero con agujero y placa con dos agujeros de montaje.
 - Ancho ajustable, dos colores, puntos cuadrados/suaves/redondos, texto y logo o emoji central.
 - Vista 3D real con giro, zoom, reinicio y ampliación; vista 2D del QR.
+- Las cuatro pestañas muestran un modelo y un QR de ejemplo al instante, conservan los datos al cambiar de tipo y permiten comprobar el QR junto al objeto. Las descargas se habilitan al completar el contenido propio.
 - 3MF, STL binario, PNG de 2048 píxeles y SVG con los mismos diseños.
 - Avisos de contraste y de módulos demasiado pequeños para una boquilla de 0,4 mm.
 - Placeholders de anuncios horizontales, intermedio, notificación y diálogo de descarga con cierre. No hay anuncios ni rastreadores reales.
@@ -60,11 +61,14 @@ Se comprueban la decodificación con un lector independiente (`jsQR`), las desca
 
 Es una web estática y no necesita un backend.
 
+- **ihost / cPanel:** ejecuta `npm run package:hosting`. El script genera `qrforma-ihost.zip` listo para subir, con rutas relativas que funcionan en un dominio, subdominio o subcarpeta. Incluye una guía de instalación y genera por separado `qrforma-codigo.zip`. Los paquetes se guardan en la carpeta superior del proyecto; `QRFORMA_PACKAGE_DIR` permite elegir otro destino. Sigue [la guía de cPanel](docs/INSTALAR-IHOST.md).
 - **GitHub Pages:** el workflow `.github/workflows/deploy.yml` compila y publica al hacer push a `main`. En el repositorio, activa **Settings → Pages → Build and deployment → Source: GitHub Actions**. El workflow calcula la ruta base del proyecto automáticamente. La URL de despliegue la devuelve el paso `actions/deploy-pages` cuando termina correctamente.
 - **Netlify:** conecta el repositorio; `netlify.toml` incluye la compilación y la carpeta `dist`. También puedes subir directamente el contenido de `dist` a Netlify Drop.
 - **Vercel:** importa el repositorio; `vercel.json` configura Vite y `dist`.
 
 La publicación requiere acceso a uno de esos servicios. Un build correcto o un push al repositorio no confirma que exista una web pública. Después del despliegue, comprueba la portada, el giro 3D y una descarga desde el dominio asignado. Cuando haya un dominio definitivo, añade su URL canónica y sitemap.
+
+Después de generar el paquete, `npm run test:hosting` sirve el ZIP real en la raíz y en una subcarpeta para comprobar sus archivos y sus descargas, sin depender del servidor de desarrollo.
 
 ## Estructura
 
