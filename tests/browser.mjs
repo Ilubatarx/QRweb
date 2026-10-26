@@ -10,6 +10,7 @@ page.on('pageerror',e=>errors.push(e.message));
 const baseURL=process.env.TEST_URL||'http://127.0.0.1:5173';
 let checks=0;
 try{
+  await page.route('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3129822340744666',route=>route.fulfill({contentType:'application/javascript',body:'window.adsbygoogle=window.adsbygoogle||[];'}));
   await page.goto(baseURL,{waitUntil:'networkidle'});
   await page.locator('canvas').waitFor();
   await page.addScriptTag({path:'node_modules/jsqr/dist/jsQR.js'});
@@ -80,8 +81,9 @@ try{
     const download=await event;assert.equal(await download.failure(),null);
     const target=`/workspace/qrforma-validation/${download.suggestedFilename()}`;await download.saveAs(target);
     const stat=await fs.stat(target);assert.ok(stat.size>1000);
-    await page.getByRole('dialog').waitFor();
-    await page.getByRole('button',{name:'Cerrar anuncio',exact:true}).click();
+    await page.locator('.toast').waitFor();
+    assert.equal(await page.locator('[role=dialog],.corner-ad,.ad').count(),0);
+    await page.getByRole('button',{name:'Cerrar aviso',exact:true}).click();
     if(format==='3mf'){const archive=unzipSync(new Uint8Array(await fs.readFile(target)));assert.ok(strFromU8(archive['3D/3dmodel.model']).includes('QR y texto'));}
     if(format==='3mf'){
       const archive=unzipSync(new Uint8Array(await fs.readFile(target)));
@@ -96,7 +98,7 @@ try{
     }
     checks++;
   }
-  console.log('PASS: the four real download actions generate non-empty files and a closable ad');
+  console.log('PASS: the four real download actions generate non-empty files and a download confirmation');
   await page.getByRole('button',{name:'Wifi',exact:true}).click();
   await page.locator('#ssid').fill('Casa; huéspedes');await page.locator('#password').fill('vacaciones:2026');
   await page.getByRole('button',{name:'Solo QR',exact:true}).click();

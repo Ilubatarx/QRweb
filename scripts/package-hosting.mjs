@@ -24,6 +24,7 @@ async function collect(directory,prefix=''){
 }
 const website=await collect(path.join(root,'dist'));
 website['LEEME-INSTALACION.txt']=strToU8(await fs.readFile(path.join(root,'docs/INSTALAR-IHOST.md'),'utf8'));
+website['GOOGLE-ADSENSE.txt']=strToU8(await fs.readFile(path.join(root,'docs/ADSENSE-IHOST.md'),'utf8'));
 if(!website['index.html']||!Object.keys(website).some(name=>name.startsWith('assets/')))throw new Error('La web compilada está incompleta.');
 
 // Include only project source paths; environment files and credentials stay outside the archive.

@@ -1,6 +1,6 @@
 # QRforma
 
-Generador de códigos QR para imprimir en 3D. Sin registro ni servidor de aplicación: los enlaces, las contraseñas wifi, los logos y los modelos se procesan en el navegador.
+Generador de códigos QR para imprimir en 3D. Sin registro ni servidor de aplicación: los enlaces, las contraseñas wifi, los logos y los modelos se procesan en el navegador. La publicidad contacta con Google AdSense.
 
 ## Desarrollo
 
@@ -31,8 +31,9 @@ La compilación genera `dist/` y prerenderiza la portada, la herramienta, el con
 - Las cuatro pestañas muestran un modelo y un QR de ejemplo al instante, conservan los datos al cambiar de tipo y permiten comprobar el QR junto al objeto. Las descargas se habilitan al completar el contenido propio.
 - 3MF, STL binario, PNG de 2048 píxeles y SVG con los mismos diseños.
 - Avisos de contraste y de módulos demasiado pequeños para una boquilla de 0,4 mm.
-- Placeholders de anuncios horizontales, intermedio, notificación y diálogo de descarga con cierre. No hay anuncios ni rastreadores reales.
-- Diseño responsive, navegación por teclado, diálogo con control de foco y respeto por movimiento reducido.
+- Google AdSense para anuncios automáticos con el editor `ca-pub-3129822340744666`, etiqueta de cuenta, `ads.txt` y política de privacidad. Google controla la aprobación y la disponibilidad de anuncios.
+- Descargas directas y confirmación, sin anuncios ficticios ni ventanas publicitarias propias.
+- Diseño responsive, navegación por teclado y respeto por movimiento reducido.
 - HTML prerenderizado, metadatos, datos estructurados WebApplication/FAQPage y robots.txt.
 
 ## 3MF y preparación de la impresión
@@ -55,7 +56,7 @@ npm run test:browser
 
 Las pruebas de navegador requieren Chromium. Se usa `/usr/bin/chromium` por defecto; puedes indicar `CHROMIUM_PATH` y, si cambias el puerto del servidor, `TEST_URL`.
 
-Se comprueban la decodificación con un lector independiente (`jsQR`), las descargas reales, los materiales 3MF, las mallas sin bordes abiertos, los agujeros, el volumen positivo y la estructura STL. También se prueban wifi, logos, giro con ratón, contraste, el cierre de anuncios y la ausencia de desbordamientos entre 320 y 1440 px.
+Se comprueban la decodificación con un lector independiente (`jsQR`), las descargas reales, los materiales 3MF, las mallas sin bordes abiertos, los agujeros, el volumen positivo y la estructura STL. También se prueban wifi, logos, giro con ratón, contraste, las confirmaciones de descarga y la ausencia de desbordamientos entre 320 y 1440 px. El script de Google se simula o bloquea para evitar impresiones publicitarias reales durante las pruebas.
 
 ## Publicación
 
@@ -69,6 +70,8 @@ Es una web estática y no necesita un backend.
 La publicación requiere acceso a uno de esos servicios. Un build correcto o un push al repositorio no confirma que exista una web pública. Después del despliegue, comprueba la portada, el giro 3D y una descarga desde el dominio asignado. Cuando haya un dominio definitivo, añade su URL canónica y sitemap.
 
 Después de generar el paquete, `npm run test:hosting` sirve el ZIP real en la raíz y en una subcarpeta para comprobar sus archivos y sus descargas, sin depender del servidor de desarrollo.
+
+La versión 1.0.2 integra el código AdSense proporcionado por el propietario. Consulta [la guía de AdSense para ihost](docs/ADSENSE-IHOST.md) para ubicar `ads.txt` en el dominio principal, completar la verificación, activar anuncios automáticos y configurar los mensajes de consentimiento necesarios en Google.
 
 ## Estructura
 

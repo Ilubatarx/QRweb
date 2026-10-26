@@ -11,7 +11,12 @@ const output=path.resolve(process.env.QRFORMA_PACKAGE_DIR||path.join(root,'..'))
 const files=unzipSync(new Uint8Array(await fs.readFile(path.join(output,'qrforma-ihost.zip'))));
 assert.ok(files['index.html']&&files['LEEME-INSTALACION.txt']);
 const html=strFromU8(files['index.html']);
+const adsenseURL='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3129822340744666';
 assert.match(html,/src="\.\/assets\//);
+assert.equal((html.match(/src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-3129822340744666"/g)||[]).length,1);
+assert.match(html,/<meta name="google-adsense-account" content="ca-pub-3129822340744666"/);
+assert.equal(strFromU8(files['ads.txt']).trim(),'google.com, pub-3129822340744666, DIRECT, f08c47fec0942fa0');
+assert.ok(files['privacidad.html']&&files['GOOGLE-ADSENSE.txt']);
 assert.ok(!Object.keys(files).some(name=>name.startsWith('/')||name.split('/').includes('..')));
 assert.ok(!Object.keys(files).some(name=>/(^|\/)(\.env|node_modules|\.git)(\/|$)/.test(name)));
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});
@@ -19,7 +24,7 @@ const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css'
 let checks=0;
 try{
   for(const mount of ['/','/sitios/qrforma/']){
-    const missing=[],errors=[],external=[];
+    const missing=[],errors=[],external=[],adsenseRequests=[];
     const server=http.createServer((req,res)=>{
       const url=new URL(req.url,'http://localhost');
       const name=url.pathname.startsWith(mount)?decodeURIComponent(url.pathname.slice(mount.length))||'index.html':null;
@@ -31,10 +36,15 @@ try{
     const page=await browser.newPage({viewport:{width:1360,height:1000},acceptDownloads:true});
     page.setDefaultTimeout(25000);
     page.on('pageerror',e=>errors.push(e.message));
-    page.on('request',req=>{if(/^https?:/.test(req.url())&&!req.url().startsWith(origin+'/'))external.push(req.url());});
+    page.on('request',req=>{if(req.url()===adsenseURL)adsenseRequests.push(req.url());else if(/^https?:/.test(req.url())&&!req.url().startsWith(origin+'/'))external.push(req.url());});
+    // No live ad impressions during testing. Test both an ad blocker and an available loader.
+    await page.route(adsenseURL,route=>mount==='/'?route.abort('blockedbyclient'):route.fulfill({contentType:'application/javascript',body:'window.adsbygoogle=window.adsbygoogle||[];'}));
     try{
       await page.goto(origin+mount,{waitUntil:'networkidle'});
       await page.locator('canvas').waitFor();
+      assert.equal(adsenseRequests.length,1);
+      assert.ok(await page.locator('head script[src*="adsbygoogle.js"]').evaluate(script=>script.async&&script.crossOrigin==='anonymous'));
+      assert.equal(await page.locator('.ad,.corner-ad,[role=dialog]').count(),0);
       await page.addScriptTag({path:path.join(root,'node_modules/jsqr/dist/jsQR.js')});
       const types=[
         {label:'Enlace',sample:'https://turestaurante.com/carta',example:false},
@@ -108,7 +118,7 @@ try{
         assert.match(model,/displaycolor="#723D2DFF"/);
         assert.equal((model.match(/<component objectid=/g)||[]).length,2);
         assert.ok(JSON.parse(strFromU8(content['Metadata/project_settings.config'])).filament_colour.length===2);
-        await page.getByRole('button',{name:'Cerrar anuncio',exact:true}).click();checks++;
+        await page.locator('.toast').waitFor();await page.getByRole('button',{name:'Cerrar aviso',exact:true}).click();checks++;
       }
       for(const format of ['stl','png','svg']){
         await page.locator('#file-format').selectOption(format);
@@ -122,12 +132,18 @@ try{
           const decoded=await page.evaluate(async source=>{const image=new Image();image.src=source;await image.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,1024,1024);return window.jsQR(ctx.getImageData(0,0,1024,1024).data,1024,1024)?.data;},source);
           assert.equal(decoded,'https://example.com/qrforma');
         }
-        await page.getByRole('button',{name:'Cerrar anuncio',exact:true}).click();checks++;
+        await page.locator('.toast').waitFor();await page.getByRole('button',{name:'Cerrar aviso',exact:true}).click();checks++;
       }
       await page.setViewportSize({width:390,height:844});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);checks++;
+      const adsFile=await page.request.get(origin+mount+'ads.txt');
+      assert.equal(adsFile.status(),200);assert.equal((await adsFile.text()).trim(),strFromU8(files['ads.txt']).trim());
+      await page.getByRole('link',{name:'Privacidad',exact:true}).click();
+      await page.getByRole('heading',{name:'Privacidad y cookies',exact:true}).waitFor();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      assert.equal(adsenseRequests.length,1);checks++;
       assert.deepEqual(missing,[]);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-      console.log(`PASS: ZIP servido en ${mount}: tres objetos 3MF a dos colores, STL, PNG/SVG decodificables y móvil; sin archivos faltantes, errores JS ni solicitudes externas.`);
+      console.log(`PASS: ZIP servido en ${mount}: tres objetos 3MF a dos colores, STL, PNG/SVG decodificables, móvil, ads.txt y privacidad. AdSense ${mount==='/'?'bloqueado':'simulado'}: carga única y herramienta operativa, sin anuncios ficticios, archivos faltantes ni errores JS.`);
     }finally{await page.close();await new Promise(resolve=>server.close(resolve));}
   }
   console.log(`PASS: ${checks} comprobaciones del paquete de hosting.`);
