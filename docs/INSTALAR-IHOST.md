@@ -16,6 +16,9 @@ Las pestañas Enlace, Wifi, Reseñas e Instagram muestran ahora el modelo
 3D y un QR de ejemplo desde el primer momento. Completa tu enlace o tu
 red wifi para habilitar la descarga con tus datos reales.
 
+La versión 1.0.2 integra Google AdSense. Lee GOOGLE-ADSENSE.txt para
+completar la conexión del dominio principal, ads.txt y los ajustes de Google.
+
 La aplicación es estática. En el hosting basta con subir y extraer el ZIP.
 Los QR y las descargas se generan en el navegador. No necesitas configurar
 Node.js, PHP, una base de datos ni tokens de cPanel para que la web funcione.
@@ -53,7 +56,10 @@ La estructura resultante debe ser:
     index.html
     favicon.svg
     robots.txt
+    ads.txt
+    privacidad.html
     LEEME-INSTALACION.txt
+    GOOGLE-ADSENSE.txt
     assets/
       archivos JavaScript, CSS y fuentes
 
@@ -77,7 +83,7 @@ están disponibles, espera a que se apliquen o consulta a ihost.
 - Descarga un PNG y escanéalo con el móvil.
 - Descarga un 3MF y comprueba que tenga las piezas Base y QR y texto.
 - Abre la web desde un móvil y comprueba una descarga.
-- Cierra el anuncio de demostración que aparece tras descargar.
+- Comprueba el aviso de confirmación que aparece tras descargar.
 
 El 3MF guarda dos materiales y sus colores, además de metadatos de
 asignación de filamentos. Según tu laminador y versión, puede hacer falta
@@ -104,8 +110,8 @@ https://TU-DOMINIO/qrforma/.
 - QR difícil de leer: usa base clara y QR oscuro, un enlace corto y un
   tamaño suficiente; prueba sin logo para comparar.
 
-La web incluye espacios ANUNCIO de demostración. La publicidad real
-requiere integrar posteriormente una plataforma publicitaria.
+La web integra el script de Google AdSense para tu cuenta. La activación
+y aprobación de los anuncios se gestionan en Google; consulta GOOGLE-ADSENSE.txt.
 
 DOCUMENTACIÓN Y CAMBIOS
 
