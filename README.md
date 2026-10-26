@@ -28,6 +28,7 @@ La compilación genera `dist/` y prerenderiza la portada, la herramienta, el con
 - Soporte de mesa con pie conectado, llavero con agujero y placa con dos agujeros de montaje.
 - Ancho ajustable, dos colores, puntos cuadrados/suaves/redondos, texto y logo o emoji central.
 - Vista 3D real con giro, zoom, reinicio y ampliación; vista 2D del QR.
+- Las cuatro pestañas muestran un modelo y un QR de ejemplo al instante, conservan los datos al cambiar de tipo y permiten comprobar el QR junto al objeto. Las descargas se habilitan al completar el contenido propio.
 - 3MF, STL binario, PNG de 2048 píxeles y SVG con los mismos diseños.
 - Avisos de contraste y de módulos demasiado pequeños para una boquilla de 0,4 mm.
 - Placeholders de anuncios horizontales, intermedio, notificación y diálogo de descarga con cierre. No hay anuncios ni rastreadores reales.

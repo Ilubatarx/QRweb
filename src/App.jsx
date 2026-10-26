@@ -2,6 +2,7 @@ import React,{useMemo,useState,useRef,useEffect} from 'react';
 import {ArrowUpRight,ArrowRight,ArrowDownToLine,Check,CheckCheck,ChevronDown,ChevronRight,Box,Layers,Link as LinkIcon,Wifi,Camera as Instagram,Star,RotateCcw,Move,Maximize2,ShieldCheck,Sparkles,Upload,X,Plus,Minus,Printer,MousePointer2,Image as ImageIcon,Square,LayoutPanelTop,KeyRound,PanelTop,Menu,ScanLine,Coffee,Heart,Sun,LoaderCircle,TriangleAlert,Info,ExternalLink} from 'lucide-react';
 import Preview from './Preview.jsx';
 import {payload,makeQR,qrSVG,contrast} from './qr.js';
+import {contentDraft,hasContent,examplePayload} from './content.js';
 import {buildModel,makeMarkMask,export3MF,exportSTL,disposeModel,dimensionsFor} from './model.js';
 
 const initial={kind:'link',value:'https://turestaurante.com/carta',ssid:'',password:'',security:'WPA',object:'table',size:90,base:'#F1EDE3',ink:'#294C3F',dots:'square',emoji:'',logo:'',label:'ESCANEA Y DISFRUTA'};
@@ -27,17 +28,25 @@ function downloadBlob(data,name,type){const blob=new Blob([data],{type}),url=URL
 export default function App(){
   const [config,setConfig]=useState(initial),[mode,setMode]=useState('3d'),[fileType,setFileType]=useState('3mf'),[modal,setModal]=useState(false),[notice,setNotice]=useState(false),[mobileMenu,setMobileMenu]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[faq,setFaq]=useState(0),[toast,setToast]=useState(''),[fullscreen,setFullscreen]=useState(false);
   const preview=useRef(null),fileInput=useRef(null),toolRef=useRef(null),toastTimer=useRef(null);
+  const contentDrafts=useRef({link:{value:initial.value},wifi:contentDraft({...initial,kind:'wifi'}),reviews:{value:''},instagram:{value:''}});
   const patch=(value)=>{setConfig(c=>({...c,...value}));setError('');};
-  const data=payload(config);
+  const selectKind=(kind,design={})=>{
+    contentDrafts.current[config.kind]=contentDraft(config);
+    patch({kind,...contentDrafts.current[kind],...design});
+    setMode('3d');
+  };
+  const data=hasContent(config)?payload(config):'';
   const qrResult=useMemo(()=>{try{return {matrix:makeQR(data),error:''};}catch{return {matrix:null,error:'Este contenido es demasiado largo. Usa un enlace más corto.'};}},[data]);
-  const matrix=qrResult.matrix,ratio=contrast(config.base,config.ink),dims=dimensionsFor(config,matrix);
-  const invalid=!matrix||(config.kind==='wifi'&&!config.ssid.trim());
+  const sampleMatrix=useMemo(()=>makeQR(examplePayload(config.kind)),[config.kind]);
+  const outputMatrix=qrResult.matrix,isExample=!outputMatrix;
+  const matrix=outputMatrix||sampleMatrix,ratio=contrast(config.base,config.ink),dims=dimensionsFor(config,matrix);
+  const invalid=!outputMatrix;
   const lightBase=parseInt(config.base.slice(1),16)>parseInt(config.ink.slice(1),16);
   useEffect(()=>{const timer=setTimeout(()=>setNotice(true),16000);return()=>clearTimeout(timer);},[]);
   useEffect(()=>{if(!modal&&!fullscreen)return;const old=document.body.style.overflow;document.body.style.overflow='hidden';const onKey=e=>{if(e.key==='Escape'){setModal(false);setFullscreen(false);}};window.addEventListener('keydown',onKey);return()=>{document.body.style.overflow=old;window.removeEventListener('keydown',onKey);};},[modal,fullscreen]);
   useEffect(()=>()=>clearTimeout(toastTimer.current),[]);
   const showToast=message=>{setToast(message);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),6000);};
-  const selectObject=id=>{const f=formats.find(f=>f.id===id);patch({object:id,size:f.size});};
+  const selectObject=id=>{const f=formats.find(f=>f.id===id);patch({object:id,size:f.size});setMode('3d');};
   const upload=async e=>{const file=e.target.files?.[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)){setError('Elige un logo PNG, JPG o WebP.');return;}if(file.size>3*1024*1024){setError('El logo debe pesar menos de 3 MB.');return;}try{const url=URL.createObjectURL(file),img=new Image();img.src=url;await img.decode();const canvas=document.createElement('canvas');const scale=Math.min(1,512/Math.max(img.width,img.height));canvas.width=img.width*scale;canvas.height=img.height*scale;canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);patch({logo:canvas.toDataURL('image/png'),emoji:''});URL.revokeObjectURL(url);}catch{setError('No se ha podido abrir esa imagen. Prueba con otro archivo.');}e.target.value='';};
   const download=async()=>{
     if(invalid){setError('Añade un enlace o el nombre de tu red wifi para crear el QR.');return;}
@@ -47,17 +56,17 @@ export default function App(){
       // Yield so the progress state is painted before generating geometry.
       await new Promise(resolve=>setTimeout(resolve,30));
       const name=`qrforma-${config.object}`;
-      if(fileType==='svg')downloadBlob(qrSVG(matrix,config),`${name}.svg`,'image/svg+xml');
+      if(fileType==='svg')downloadBlob(qrSVG(outputMatrix,config),`${name}.svg`,'image/svg+xml');
       else if(fileType==='png'){
-        const svg=qrSVG(matrix,config,{pixels:2048}),img=new Image();img.src=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;await img.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=2048;canvas.getContext('2d').drawImage(img,0,0);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('No se pudo crear el PNG.');downloadBlob(blob,`${name}.png`,'image/png');
+        const svg=qrSVG(outputMatrix,config,{pixels:2048}),img=new Image();img.src=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;await img.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=2048;canvas.getContext('2d').drawImage(img,0,0);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('No se pudo crear el PNG.');downloadBlob(blob,`${name}.png`,'image/png');
       }else{
-        const mask=await makeMarkMask(config),model=buildModel(config,matrix,mask);
+        const mask=await makeMarkMask(config),model=buildModel(config,outputMatrix,mask);
         try{if(fileType==='3mf')downloadBlob(export3MF(model,config),`${name}.3mf`,'model/3mf');else downloadBlob(exportSTL(model,config),`${name}.stl`,'model/stl');}finally{disposeModel(model);}
       }
       setModal(true);showToast(`Tu archivo .${fileType.toUpperCase()} se ha descargado.`);
     }catch(e){setError('No se pudo generar el archivo. Prueba con un enlace más corto o sin logo.');console.error(e);}finally{setBusy(false);}
   };
-  const applyUseCase=item=>{patch({kind:item.kind,value:item.value,object:item.object,size:formats.find(f=>f.id===item.object).size,label:item.label,emoji:item.emoji,logo:''});toolRef.current?.scrollIntoView({behavior:'smooth',block:'start'});};
+  const applyUseCase=item=>{selectKind(item.kind,{object:item.object,size:formats.find(f=>f.id===item.object).size,label:item.label,emoji:item.emoji,logo:''});toolRef.current?.scrollIntoView({behavior:'smooth',block:'start'});};
   return <>
     <header className="site-header"><div className="header-inner"><Logo/><nav className={mobileMenu?'nav open':'nav'} aria-label="Navegación principal"><a href="#como-funciona" onClick={()=>setMobileMenu(false)}>Cómo funciona</a><a href="#ideas" onClick={()=>setMobileMenu(false)}>Ideas para inspirarte</a><a href="#preguntas" onClick={()=>setMobileMenu(false)}>Preguntas frecuentes</a></nav><div className="header-free"><span/>Gratis. Sin registro.</div><button className="mobile-menu icon-btn" onClick={()=>setMobileMenu(!mobileMenu)} aria-label="Abrir menú" aria-expanded={mobileMenu}><Menu size={23}/></button></div></header>
     <main>
@@ -67,7 +76,7 @@ export default function App(){
         <div className="studio">
           <div className="editor-panel">
             <div className="step-title"><span>01</span><h3>Empieza con tu enlace</h3></div>
-            <div className="content-types" role="group" aria-label="Tipo de contenido">{[{id:'link',Icon:LinkIcon,label:'Enlace'},{id:'wifi',Icon:Wifi,label:'Wifi'},{id:'reviews',Icon:Star,label:'Reseñas'},{id:'instagram',Icon:Instagram,label:'Instagram'}].map(({id,Icon,label})=><button key={id} className={config.kind===id?'active':''} onClick={()=>patch({kind:id,value:id==='link'?initial.value:''})} aria-pressed={config.kind===id}><Icon size={15}/><span>{label}</span></button>)}</div>
+            <div className="content-types" role="group" aria-label="Tipo de contenido">{[{id:'link',Icon:LinkIcon,label:'Enlace'},{id:'wifi',Icon:Wifi,label:'Wifi'},{id:'reviews',Icon:Star,label:'Reseñas'},{id:'instagram',Icon:Instagram,label:'Instagram'}].map(({id,Icon,label})=><button key={id} className={config.kind===id?'active':''} onClick={()=>selectKind(id)} aria-pressed={config.kind===id}><Icon size={15}/><span>{label}</span></button>)}</div>
             {config.kind==='wifi'?<div className="wifi-fields"><label className="field-label" htmlFor="ssid">Nombre de la red (SSID)</label><input id="ssid" placeholder="Wifi de invitados" maxLength={32} value={config.ssid} onChange={e=>patch({ssid:e.target.value})}/><div className="wifi-row"><div><label className="field-label" htmlFor="security">Seguridad</label><select id="security" value={config.security} onChange={e=>patch({security:e.target.value})}><option value="WPA">WPA / WPA2</option><option value="WEP">WEP</option><option value="nopass">Abierta</option></select></div>{config.security!=='nopass'&&<div><label className="field-label" htmlFor="password">Contraseña</label><input id="password" type="password" value={config.password} onChange={e=>patch({password:e.target.value})} placeholder="Contraseña wifi" maxLength={63}/></div>}</div><p className="field-hint">Usa una red de invitados: el QR contiene su contraseña.</p></div>:<><label className="field-label" htmlFor="url">{config.kind==='reviews'?'Enlace de tus reseñas de Google':config.kind==='instagram'?'Enlace a tu perfil de Instagram':'¿A dónde quieres llevarles?'}</label><div className="input-with-icon"><LinkIcon size={15}/><input id="url" type="url" maxLength={350} placeholder={config.kind==='reviews'?'https://g.page/r/tu-negocio/review':config.kind==='instagram'?'https://instagram.com/tu-perfil':'https://tu-enlace.com'} value={config.value} onChange={e=>patch({value:e.target.value})}/>{config.value&&<Check className="input-check" size={15}/>}</div><p className="field-hint">{config.kind==='reviews'?'Copia el enlace «Pedir reseñas» de tu perfil de empresa.':config.kind==='instagram'?'Pega la URL completa de tu perfil.':'Tu carta, tu web, tus redes… tú eliges.'}</p></>}
             <div className="editor-divider"/>
             <div className="step-title"><span>02</span><h3>Elige tu objeto</h3><span className="optional-badge">3D</span></div>
@@ -76,9 +85,9 @@ export default function App(){
           </div>
           <div className={`preview-panel ${fullscreen?'fullscreen':''}`}>
             <div className="preview-top"><div className="view-tabs" role="group" aria-label="Tipo de vista"><button className={mode==='3d'?'active':''} onClick={()=>setMode('3d')}><Box size={14}/> Vista 3D</button><button className={mode==='2d'?'active':''} onClick={()=>setMode('2d')}><ScanLine size={14}/> Solo QR</button></div><button className="icon-btn expand-button" title={fullscreen?'Salir de pantalla completa':'Ampliar vista'} aria-label={fullscreen?'Salir de pantalla completa':'Ampliar vista'} onClick={()=>setFullscreen(!fullscreen)}>{fullscreen?<X size={17}/>:<Maximize2 size={16}/>}</button></div>
-            <div className="preview-scene" style={{display:mode==='3d'?'block':'none'}}><Preview ref={preview} config={config} matrix={matrix}/><div className="object-tag"><span/>{formats.find(f=>f.id===config.object).title}</div><div className="axis-widget"><span className="axis-y">Y</span><span className="axis-z">Z</span><span className="axis-x">X</span><i/></div></div>
+            {isExample&&<p className="preview-example-notice" role="status"><Info size={12}/>{qrResult.error?'Vista de ejemplo · Revisa el contenido para descargar.':`Vista de ejemplo · Completa ${config.kind==='wifi'?'tu red wifi':'tu enlace'} para descargar.`}</p>}
+            <div className="preview-scene" style={{display:mode==='3d'?'block':'none'}}><Preview ref={preview} config={config} matrix={matrix}/><div className="object-tag"><span/>{formats.find(f=>f.id===config.object).title}</div><button className="preview-qr-card" onClick={()=>setMode('2d')} aria-label="Ampliar código QR"><img width="64" height="64" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSVG(matrix,config))}`} alt={isExample?'Código QR de ejemplo':'Tu código QR'}/><span>{isExample?'QR de ejemplo':'Tu QR'}</span></button><div className="axis-widget"><span className="axis-y">Y</span><span className="axis-z">Z</span><span className="axis-x">X</span><i/></div></div>
             {mode==='2d'&&<div className="qr-preview">{matrix?<img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrSVG(matrix,config))}`} alt="Código QR personalizado"/>:<div className="empty-preview"><ScanLine size={50}/><p>Añade tu contenido para ver el QR</p></div>}<span>Margen de seguridad incluido · Corrección alta</span></div>}
-            {!matrix&&mode==='3d'&&<div className="empty-preview overlay-empty"><ScanLine size={42}/><p>Tu QR aparecerá aquí</p></div>}
             <div className="preview-bottom"><span><MousePointer2 size={14}/>{mode==='3d'?'Arrastra para girar · Desliza para acercar':'Vista lista para PNG y SVG'}</span><button className="icon-btn" onClick={()=>preview.current?.reset()} aria-label="Restablecer vista" title="Restablecer vista"><RotateCcw size={16}/></button></div>
             <div className="preview-dimensions"><span><Box size={13}/> {dims.width} × {dims.height} × {dims.depth} mm</span><span><span className="color-dot" style={{background:config.base}}/><span className="color-dot" style={{background:config.ink}}/> 2 colores</span></div>
           </div>
@@ -92,7 +101,7 @@ export default function App(){
         </div>
         <div className="download-bar"><div className="download-note"><span className="download-icon"><Layers size={21}/></span><div><strong>De tu pantalla a tu próxima impresión.</strong><span>Dos colores, un archivo. Cero complicaciones.</span></div></div><div className="download-actions"><div className="format-select"><label htmlFor="file-format" className="visually-hidden">Formato de descarga</label><select id="file-format" value={fileType} onChange={e=>setFileType(e.target.value)}><option value="3mf">3MF · Dos colores</option><option value="stl">STL · Sin colores</option><option value="png">PNG · Imagen 2D</option><option value="svg">SVG · Vector 2D</option></select><ChevronDown size={15}/></div><button className="download-button" onClick={download} disabled={busy||invalid||ratio<4.5}>{busy?<LoaderCircle className="spin" size={18}/>:<ArrowDownToLine size={18}/>} {busy?'Preparando…':`Descargar ${fileType.toUpperCase()}`}<ArrowUpRight size={16}/></button></div></div>
         {(error||qrResult.error)&&<p role="alert" className="error-message"><TriangleAlert size={16}/>{error||qrResult.error}</p>}
-        {matrix&&dims.module<.8&&<p className="print-warning"><TriangleAlert size={14}/> Módulos de {dims.module.toFixed(2)} mm: para boquilla de 0,4 mm, aumenta el tamaño o acorta el enlace hasta alcanzar 0,8 mm por módulo.</p>}
+        {!isExample&&dims.module<.8&&<p className="print-warning"><TriangleAlert size={14}/> Módulos de {dims.module.toFixed(2)} mm: para boquilla de 0,4 mm, aumenta el tamaño o acorta el enlace hasta alcanzar 0,8 mm por módulo.</p>}
         <div className="studio-footnote"><span><ShieldCheck size={13}/> Tus enlaces y diseños se quedan en tu navegador.</span><span><Info size={13}/> 3MF conserva los materiales. Asigna tus filamentos en el laminador.</span></div>
       </section>
       <div className="container"><Ad className="banner-ad" label="BANNER HORIZONTAL · 970 × 90"/></div>

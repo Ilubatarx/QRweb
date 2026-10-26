@@ -7,6 +7,15 @@ Usa qrforma-ihost.zip. Contiene la web compilada y todos sus archivos, con
 index.html directamente en la raíz del ZIP. El paquete qrforma-codigo.zip
 es el código fuente para futuras modificaciones; no es el que debes subir.
 
+ACTUALIZAR UNA INSTALACIÓN ANTERIOR
+
+Sube el nuevo ZIP a la misma carpeta de QRforma, extráelo y permite
+sobrescribir los archivos de la aplicación, especialmente index.html.
+Después recarga la web con Ctrl+F5 para ver la nueva versión.
+Las pestañas Enlace, Wifi, Reseñas e Instagram muestran ahora el modelo
+3D y un QR de ejemplo desde el primer momento. Completa tu enlace o tu
+red wifi para habilitar la descarga con tus datos reales.
+
 La aplicación es estática. En el hosting basta con subir y extraer el ZIP.
 Los QR y las descargas se generan en el navegador. No necesitas configurar
 Node.js, PHP, una base de datos ni tokens de cPanel para que la web funcione.
